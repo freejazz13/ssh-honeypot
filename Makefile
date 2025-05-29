@@ -14,6 +14,7 @@ clean:
 install: ssh-honeypot install-etc $(RSA)
 
 install-etc:
+	mkdir -p /var/log/ssh-honeypot && chmod 777 /var/log/ssh-honeypot
 	install -m 755 bin/ssh-honeypot /usr/local/bin/
 	install -d /etc/ssh-honeypot
 	install -m 644 ssh-honeypot.service /etc/ssh-honeypot/
