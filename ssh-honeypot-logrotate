@@ -1,0 +1,10 @@
+/var/log/ssh-honeypot/ssh-honeypot.log {
+    #rotate 20
+    size 30M
+    missingok
+    notifempty
+    compress
+    postrotate
+	systemctl restart ssh-honeypot
+    endscript
+}

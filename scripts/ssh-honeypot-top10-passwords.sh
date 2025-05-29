@@ -17,4 +17,4 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-grep -v -e "Error exchanging keys" $1 -e "] FATAL" -e "] ssh-honeypot " | awk {'print $8'} |sort |uniq -c |sort -rn |head -n 10
+grep -v -e "Error exchanging keys" $1 -e "] FATAL" -e "] ssh-honeypot " | awk {'print $8'} |sort |uniq -c |sort -rn |head -n 100
