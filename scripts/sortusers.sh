@@ -12,4 +12,4 @@
 cat /var/log/ssh-honeypot/ssh-honeypot.log  2>&-
 zcat /var/log/ssh-honeypot/ssh-honeypot.log*gz 2>&-
 bzcat /var/log/ssh-honeypot/ssh-honeypot.log*bz2 2>&-
-| awk '{print $(NF-1)}' |sort |uniq -c |sort -rn | tee USERS | less -SFX
+| grep -v HASSH |awk '{print $(NF-1)}' |sort |uniq -c |sort -rn | tee USERS | less -SFX
