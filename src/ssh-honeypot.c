@@ -510,7 +510,8 @@ static void parse_hassh(u_char *args,
 	md5_digest(hassh, hassh_digest, sizeof(hassh_digest));
 
 	/* Log and output */
-	log_entry("%s: %s %s sport: %d ttl: %d",
+	// J only if verbose
+	if (verbose) log_entry("%s: %s %s sport: %d ttl: %d",
 			  htons(tcp_header->th_sport) == port ? "HASSHServer" : "HASSH",
 			  inet_ntoa(ip_header->ip_src),
 			  hassh_digest,
@@ -723,6 +724,12 @@ void drop_privileges(char *username) {
 						strerror(errno));
 }
 
+volatile sig_atomic_t ssh_timeout_occurred = 0;
+
+void ssh_timeout_handler(int sig) {
+    ssh_timeout_occurred = 1;
+}
+
 
 /* main() -- main entry point of program
  */
@@ -906,7 +913,17 @@ int main(int argc, char *argv[]) {
 			log_entry_fatal("FATAL: fork(): %s", strerror(errno));
 
 		if (child == 0) {
-			handle_ssh_auth(session);
+			
+                       // ---------------Set up timeout handler
+                       struct sigaction sa;
+                       sa.sa_handler = ssh_timeout_handler;
+                       sigemptyset(&sa.sa_mask);
+                       sa.sa_flags = 0;
+                       sigaction(SIGALRM, &sa, NULL);
+                       alarm(60);
+		       handle_ssh_auth(session);
+                       alarm(0);
+                        if (ssh_timeout_occurred) { log_entry("Alarm timeout in handle_ssh_auth!"); }
 			ssh_free(session);
 			exit(EXIT_SUCCESS);
 		} else {
