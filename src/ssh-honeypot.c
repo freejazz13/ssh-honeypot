@@ -535,6 +535,23 @@ static void parse_hassh(u_char *args,
 }
 
 
+static int set_socket_timeout(ssh_session session, int timeout_sec) {
+    int sockfd = ssh_get_fd(session);
+    struct timeval timeout;
+
+    timeout.tv_sec = timeout_sec;
+    timeout.tv_usec = 0;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        return -1;
+    }
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
 /* handle_ssh_auth() -- handles ssh authentication requests, logging
  *                   -- appropriately.
  */
@@ -724,13 +741,6 @@ void drop_privileges(char *username) {
 						strerror(errno));
 }
 
-volatile sig_atomic_t ssh_timeout_occurred = 0;
-
-void ssh_timeout_handler(int sig) {
-    ssh_timeout_occurred = 1;
-}
-
-
 /* main() -- main entry point of program
  */
 int main(int argc, char *argv[]) {
@@ -913,17 +923,9 @@ int main(int argc, char *argv[]) {
 			log_entry_fatal("FATAL: fork(): %s", strerror(errno));
 
 		if (child == 0) {
-			
-                       // ---------------Set up timeout handler
-                       struct sigaction sa;
-                       sa.sa_handler = ssh_timeout_handler;
-                       sigemptyset(&sa.sa_mask);
-                       sa.sa_flags = 0;
-                       sigaction(SIGALRM, &sa, NULL);
-                       alarm(60);
-		       handle_ssh_auth(session);
-                       alarm(0);
-                        if (ssh_timeout_occurred) { log_entry("Alarm timeout in handle_ssh_auth!"); }
+                        // Set socket timeout BEFORE any SSH operations
+                        if (set_socket_timeout(session, 30) < 0) { log_entry("Failed to set socket timeout"); }
+		        handle_ssh_auth(session);
 			ssh_free(session);
 			exit(EXIT_SUCCESS);
 		} else {
